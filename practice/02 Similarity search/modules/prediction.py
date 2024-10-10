@@ -84,6 +84,28 @@ class BestMatchPredictor:
 
         predict_values = np.zeros((self.h,))
 
-        # INSERT YOUR CODE
-        
+        # 1. Выбор алгоритма
+        if self.match_alg == 'UCR-DTW':
+            ucr_dtw = UCR_DTW(self.match_alg_params['excl_zone_frac'], self.match_alg_params['topK'], self.match_alg_params['is_normalize'], self.match_alg_params['r'])
+            topK_matches = ucr_dtw.perform(ts, query)
+            
+        elif self.match_alg == 'MASS':
+            dist_profile = mts.mass2(ts, query)
+            dist_profile = dist_profile.real
+
+            topK_matches = topK_match(dist_profile, self.match_alg_params['topK'], self.match_alg_params['topK'])
+    
+        # 2. Извлечение значений временных рядов после топ-K совпадений
+        topK_subs_predict_values = []
+        self.h = int(self.h)
+        for idx in topK_matches['indices']:
+            idx = int(idx)
+            if idx + self.h <= len(ts):
+                topK_subs_predict_values.append(ts[idx:idx + self.h])
+    
+        topK_subs_predict_values = np.array(topK_subs_predict_values)
+    
+        # 3. Агрегация результатов
+        predict_values = self._calculate_predict_values(topK_subs_predict_values)
+
         return predict_values
