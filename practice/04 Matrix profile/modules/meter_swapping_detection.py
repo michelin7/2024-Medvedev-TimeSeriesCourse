@@ -11,7 +11,7 @@ plotly.offline.init_notebook_mode(connected=True)
 from modules.mp import *
 
 
-def heads_tails(consumptions: dict, cutoff, house_idx: list) -> dict, dict:
+def heads_tails(consumptions: dict, cutoff, house_idx: list) -> (dict, dict):
     """
     Split time series into two parts: Head and Tail
 
@@ -54,9 +54,24 @@ def meter_swapping_detection(heads: dict, tails: dict, house_idx: dict, m: int) 
 
     eps = 0.001
 
-    min_score = {}
+    min_score = {'score': float('inf'), 'pair': (None, None)}
 
-    # INSERT YOUR CODE
+    for i in house_idx:
+        for j in house_idx:
+            if i != j:  # Избегаем самосравнения
+                # Извлекаем ряды для текущих домов
+                ts1 = heads.get(f'H_{i}')
+                ts2 = tails.get(f'T_{j}')
+                
+                if ts1 is not None and ts2 is not None:
+                    # Вычисляем матричный профиль между ts1 и ts2
+                    result = compute_mp(ts1=ts1, m=m, ts2=ts2)
+                    swap_score = np.min(result['mp'])  # Минимум из матричного профиля
+                    
+                    # Проверяем, меньше ли текущий swap_score минимального найденного значения
+                    if swap_score < min_score['score'] - eps:
+                        min_score['score'] = swap_score
+                        min_score['pair'] = (i, j)
     
     return min_score
 
@@ -109,4 +124,4 @@ def plot_consumptions_ts(consumptions: dict, cutoff, house_idx: list):
                       legend=dict(font=dict(size=20, color='black'))
                       )
 
-    fig.show(renderer="colab")
+    fig.show(renderer="vscode")
